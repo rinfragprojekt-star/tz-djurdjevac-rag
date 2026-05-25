@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+    <meta charset="UTF-8">
+    <title>RAG Chatbot TZ Đurđevac</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chat-container {
+            width: 90%;
+            max-width: 850px;
+            height: 85vh;
+            background: #f8fafc;
+            color: #111827;
+            border-radius: 18px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: #14532d;
+            color: white;
+            padding: 20px;
+        }
+
+        .chat-header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .chat-header p {
+            margin: 6px 0 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .chat-box {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #e5e7eb;
+        }
+
+        .message {
+            max-width: 75%;
+            padding: 12px 15px;
+            margin-bottom: 12px;
+            border-radius: 16px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+
+        .user {
+            background: #14532d;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+
+        .bot {
+            background: white;
+            color: #111827;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+        }
+
+        .sources {
+            font-size: 13px;
+            color: #6b7280;
+            margin-top: 6px;
+        }
+
+        .chat-input {
+            display: flex;
+            gap: 10px;
+            padding: 16px;
+            background: white;
+            border-top: 1px solid #d1d5db;
+        }
+
+        input {
+            flex: 1;
+            padding: 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #14532d;
+        }
+
+        button {
+            padding: 14px 22px;
+            border: none;
+            border-radius: 12px;
+            background: #14532d;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #166534;
+        }
+
+        .example-questions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 12px 16px;
+            background: #f1f5f9;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .example-questions button {
+            background: #e2e8f0;
+            color: #111827;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: normal;
+        }
+
+        .example-questions button:hover {
+            background: #cbd5e1;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="chat-container">
+
+    <div class="chat-header">
+        <h1>RAG Chatbot TZ Đurđevac</h1>
+        <p>AI asistent koji odgovara na temelju dokumenata Turističke zajednice.</p>
+    </div>
+
+    <div class="chat-box" id="chatBox">
+        <div class="message bot">
+            Pozdrav! Postavite pitanje o dokumentima, iznajmljivačima, eVisitoru ili turističkim informacijama.
+        </div>
+    </div>
+
+    <div class="example-questions">
+        <button onclick="setQuestion('Što je eVisitor?')">Što je eVisitor?</button>
+        <button onclick="setQuestion('Kako se prijavljuju gosti?')">Kako se prijavljuju gosti?</button>
+        <button onclick="setQuestion('Što mora sadržavati račun?')">Što mora sadržavati račun?</button>
+        <button onclick="setQuestion('Kolika je turistička pristojba?')">Kolika je turistička pristojba?</button>
+    </div>
+
+    <div class="chat-input">
+        <input id="message" type="text" placeholder="Upišite pitanje...">
+        <button onclick="sendMessage()">Pošalji</button>
+    </div>
+
+</div>
+
+<script>
+    const input = document.getElementById("message");
+    const chatBox = document.getElementById("chatBox");
+
+    input.addEventListener("keydown", function(event) {
+        if (event.key === "Enter") {
+            sendMessage();
+        }
+    });
+
+    function setQuestion(question) {
+        input.value = question;
+        sendMessage();
+    }
+
+    function addMessage(text, sender, sources = []) {
+        const messageDiv = document.createElement("div");
+        messageDiv.className = "message " + sender;
+        messageDiv.innerText = text;
+
+        if (sources.length > 0) {
+            const sourcesDiv = document.createElement("div");
+            sourcesDiv.className = "sources";
+            sourcesDiv.innerText = "Izvori: " + sources.join(", ");
+            messageDiv.appendChild(sourcesDiv);
+        }
+
+        chatBox.appendChild(messageDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        return messageDiv;
+    }
+
+    async function sendMessage() {
+        const message = input.value.trim();
+
+        if (!message) return;
+
+        addMessage(message, "user");
+        input.value = "";
+
+        const loadingMessage = addMessage("Razmišljam...", "bot");
+
+        try {
+            const response = await fetch("/chat", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    message: message
+                })
+            });
+
+            const data = await response.json();
+
+            loadingMessage.innerText = data.answer;
+
+            if (data.sources && data.sources.length > 0) {
+                const sourcesDiv = document.createElement("div");
+                sourcesDiv.className = "sources";
+                sourcesDiv.innerText = "Izvori: " + data.sources.join(", ");
+                loadingMessage.appendChild(sourcesDiv);
+            }
+
+        } catch (error) {
+            loadingMessage.innerText = "Dogodila se greška. Provjerite je li Flask server pokrenut.";
+        }
+    }
+</script>
+
+</body>
+</html>
