@@ -2,14 +2,17 @@ import os
 import chromadb
 from dotenv import load_dotenv
 from google import genai
-import google.generativeai as genai
 
 load_dotenv()
 
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+client = genai.Client(
+    api_key=os.getenv("GEMINI_API_KEY")
+)
 
 chroma_client = chromadb.PersistentClient(path="vector_store")
-collection = chroma_client.get_or_create_collection(name="tz_docs")
+collection = chroma_client.get_or_create_collection(
+    name="tz_docs"
+)
 
 
 def get_embedding(text):
