@@ -9,7 +9,8 @@ client = genai.Client(
     api_key=os.getenv("GEMINI_API_KEY")
 )
 
-chroma_client = chromadb.PersistentClient(path="vector_store")
+chroma_client = chromadb.Client()
+
 collection = chroma_client.get_or_create_collection(
     name="tz_docs"
 )
