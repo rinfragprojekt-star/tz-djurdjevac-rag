@@ -3,19 +3,21 @@ import chromadb
 from dotenv import load_dotenv
 import google.generativeai as genai
 
+# Učitaj .env datoteku (lokalno)
 load_dotenv()
 
-# Postavi API ključ
+# Postavi API ključ iz okoline (Cloud Run koristi Environment Variables)
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
+# Inicijalizacija ChromaDB klijenta
 chroma_client = chromadb.Client()
 
-collection = chroma_client.get_or_create_collection(
-    name="tz_docs"
-)
+# Kreiraj ili dohvatite kolekciju
+collection = chroma_client.get_or_create_collection(name="tz_docs")
 
 
-def get_embedding(text):
+def get_embedding(text: str):
+    """Generira embedding za zadani tekst pomoću Gemini embedding modela."""
     response = genai.embed_content(
         model="models/embedding-001",
         content=text
@@ -23,7 +25,8 @@ def get_embedding(text):
     return response["embedding"]
 
 
-def search_documents(question, n_results=3):
+def search_documents(question: str, n_results: int = 3):
+    """Pretražuje dokumente u ChromaDB koristeći embedding upit."""
     question_embedding = get_embedding(question)
 
     results = collection.query(
@@ -38,13 +41,14 @@ def search_documents(question, n_results=3):
     sources = []
 
     for doc, meta in zip(documents, metadatas):
-        context += f"\n\nIZVOR: {meta['source']}\n{doc}"
-        sources.append(meta["source"])
+        context += f"\n\nIZVOR: {meta.get('source', 'Nepoznato')}\n{doc}"
+        sources.append(meta.get("source", "Nepoznato"))
 
     return context, list(set(sources))
 
 
-def generate_answer(question):
+def generate_answer(question: str):
+    """Generira odgovor koristeći Gemini model i kontekst iz dokumenata."""
     context, sources = search_documents(question)
 
     prompt = f"""
@@ -66,4 +70,6 @@ PITANJE:
         contents=prompt
     )
 
-    return response.text, sources
+    # U novijim verzijama response.text može biti None → koristi .candidates
+    answer = response.text or response.candidates[0].content.parts[0].text
+    return answer, sources
