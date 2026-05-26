@@ -1,13 +1,13 @@
 steps:
-  # 1) Build Docker image
+  # 1️⃣ Build Docker image
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'gcr.io/$PROJECT_ID/tz-djurdjevac-rag', '.']
 
-  # 2) Push image to Container Registry
+  # 2️⃣ Push image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/tz-djurdjevac-rag']
 
-  # 3) Deploy to Cloud Run
+  # 3️⃣ Deploy to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -21,3 +21,7 @@ steps:
 
 images:
   - 'gcr.io/$PROJECT_ID/tz-djurdjevac-rag'
+
+# ✅ Fix for "logs bucket" error
+options:
+  default_logs_bucket_behavior: REGIONAL_USER_OWNED_BUCKET
