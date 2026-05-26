@@ -19,9 +19,14 @@ collection = chroma_client.get_or_create_collection(name="tz_docs")
 def get_embedding(text: str):
     """Generira embedding za zadani tekst pomoću Gemini embedding modela."""
     response = genai.embed_content(
-        model="models/embedding-001",
+        model="embedding-001",
         content=text
     )
+
+    # zaštita ako embedding ne postoji
+    if "embedding" not in response or response["embedding"] is None:
+        return [0.0] * 768  # fallback embedding
+
     return response["embedding"]
 
 
@@ -66,10 +71,14 @@ PITANJE:
 """
 
     response = genai.generate_content(
-        model="models/gemini-2.0-flash",
+        model="gemini-2.0-flash",
         contents=prompt
     )
 
     # U novijim verzijama response.text može biti None → koristi .candidates
-    answer = response.text or response.candidates[0].content.parts[0].text
+    if response.text:
+        answer = response.text
+    else:
+        answer = response.candidates[0].content.parts[0].text
+
     return answer, sources
