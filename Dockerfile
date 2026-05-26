@@ -9,5 +9,4 @@ COPY . .
 
 ENV PORT=8080
 
-# Dodaj timeout za Gunicorn
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:8080", "--timeout", "120"]
+CMD ["gunicorn", "--chdir", "/app", "app:app", "--bind", "0.0.0.0:8080", "--timeout", "120"]
