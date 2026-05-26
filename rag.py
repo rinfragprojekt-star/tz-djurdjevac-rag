@@ -1,13 +1,12 @@
 import os
 import chromadb
 from dotenv import load_dotenv
-from google import genai
+import google.generativeai as genai
 
 load_dotenv()
 
-client = genai.Client(
-    api_key=os.getenv("GEMINI_API_KEY")
-)
+# Postavi API ključ
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 chroma_client = chromadb.Client()
 
@@ -17,12 +16,11 @@ collection = chroma_client.get_or_create_collection(
 
 
 def get_embedding(text):
-    response = client.models.embed_content(
-        model="gemini-embedding-001",
-        contents=text
+    response = genai.embed_content(
+        model="models/embedding-001",
+        content=text
     )
-
-    return response.embeddings[0].values
+    return response["embedding"]
 
 
 def search_documents(question, n_results=3):
@@ -63,8 +61,8 @@ PITANJE:
 {question}
 """
 
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
+    response = genai.generate_content(
+        model="models/gemini-2.0-flash",
         contents=prompt
     )
 
