@@ -14,11 +14,20 @@ def chat():
     print("DEBUG: /chat endpoint hit")
     sys.stdout.flush()
 
-    data = request.get_json(silent=True) or {}
-    print("DEBUG: Raw request JSON:", data)
+    # Sigurno parsiranje JSON-a
+    data = request.get_json(silent=True)
+    if data is None:
+        print("DEBUG: JSON parsing failed")
+        sys.stdout.flush()
+        return jsonify({
+            "answer": "Neispravan JSON format.",
+            "sources": []
+        }), 400
+
+    print("DEBUG: Raw JSON:", data)
     sys.stdout.flush()
 
-    # Frontend šalje "message", ne "question"
+    # Frontend šalje "message"
     question = data.get("message", "").strip()
     print("DEBUG: Extracted question:", question)
     sys.stdout.flush()
