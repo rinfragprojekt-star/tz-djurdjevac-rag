@@ -10,6 +10,7 @@ print("DEBUG GEMINI_API_KEY:", os.getenv("GEMINI_API_KEY"))
 
 
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+os.environ["GOOGLE_API_USE_CLIENT_CERTIFICATE"] = "false"
 os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
 
 
