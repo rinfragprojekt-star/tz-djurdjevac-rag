@@ -6,8 +6,9 @@ import google.generativeai as genai
 # Učitaj .env datoteku (lokalno)
 load_dotenv()
 
-# Postavi API ključ iz okoline (Cloud Run koristi Environment Variables)
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
+
 
 # Inicijalizacija ChromaDB klijenta
 chroma_client = chromadb.Client()
