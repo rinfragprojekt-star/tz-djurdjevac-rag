@@ -6,6 +6,9 @@ import google.generativeai as genai
 # Učitaj .env datoteku (lokalno)
 load_dotenv()
 
+print("DEBUG GEMINI_API_KEY:", os.getenv("GEMINI_API_KEY"))
+
+
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
 
