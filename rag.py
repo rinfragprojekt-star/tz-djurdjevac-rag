@@ -23,10 +23,11 @@ collection = chroma_client.get_or_create_collection(name="tz_docs")
 
 def get_embedding(text: str):
     """Generira embedding za zadani tekst pomoću Gemini embedding modela."""
-    response = genai.embed_content(
-        model="embedding-001",
-        content=text
-    )
+response = genai.embed_content(
+    model="text-embedding-004",
+    content=text
+)
+
 
     # zaštita ako embedding ne postoji
     if "embedding" not in response or response["embedding"] is None:
