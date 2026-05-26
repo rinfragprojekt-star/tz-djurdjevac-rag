@@ -21,12 +21,10 @@ def chat():
 
     try:
         answer, sources = generate_answer(question)
-
         return jsonify({
             "answer": answer,
             "sources": sources
         })
-
     except Exception as e:
         print("GREŠKA U /chat:", e)
         return jsonify({
@@ -35,6 +33,5 @@ def chat():
         }), 500
 
 if __name__ == "__main__":
-
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port, debug=False)
