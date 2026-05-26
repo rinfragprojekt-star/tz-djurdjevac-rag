@@ -6,11 +6,7 @@ import google.generativeai as genai
 # Učitaj .env datoteku (lokalno)
 load_dotenv()
 
-print("DEBUG GEMINI_API_KEY:", os.getenv("GEMINI_API_KEY"))
-
-
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-os.environ["GOOGLE_API_USE_CLIENT_CERTIFICATE"] = "false"
 os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
 
 
@@ -23,11 +19,10 @@ collection = chroma_client.get_or_create_collection(name="tz_docs")
 
 def get_embedding(text: str):
     """Generira embedding za zadani tekst pomoću Gemini embedding modela."""
-response = genai.embed_content(
-    model="text-embedding-004",
-    content=text
-)
-
+    response = genai.embed_content(
+        model="embedding-001",
+        content=text
+    )
 
     # zaštita ako embedding ne postoji
     if "embedding" not in response or response["embedding"] is None:
