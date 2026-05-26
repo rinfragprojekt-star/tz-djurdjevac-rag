@@ -1,5 +1,7 @@
-flask
+Flask
 python-dotenv
 google-genai
 chromadb
 pypdf
+gunicorn
+google-generativeai
