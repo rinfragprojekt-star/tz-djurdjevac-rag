@@ -1,9 +1,31 @@
 steps:
+  - name: 'python:3.11'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        pip install -r requirements.txt
+
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/my-app', '.']
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/tz-djurdjevac-rag'
+      - '.'
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud run deploy tz-djurdjevac-rag \
+          --image gcr.io/$PROJECT_ID/tz-djurdjevac-rag \
+          --region europe-west1 \
+          --platform managed \
+          --allow-unauthenticated
 
 images:
-  - 'gcr.io/$PROJECT_ID/my-app'
+  - 'gcr.io/$PROJECT_ID/tz-djurdjevac-rag'
 
 options:
   logging: CLOUD_LOGGING_ONLY
