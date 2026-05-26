@@ -3,23 +3,38 @@ from rag import generate_answer
 
 app = Flask(__name__)
 
-
 @app.route("/")
 def index():
     return render_template("index.html")
 
-
 @app.route("/chat", methods=["POST"])
 def chat():
-    question = request.json.get("message")
+    data = request.get_json()
+    question = data.get("message", "")
 
-    answer, sources = generate_answer(question)
+    if not question:
+        return jsonify({
+            "answer": "Niste poslali pitanje.",
+            "sources": []
+        })
 
-    return jsonify({
-        "answer": answer,
-        "sources": sources
-    })
+    try:
+        answer, sources = generate_answer(question)
 
+        return jsonify({
+            "answer": answer,
+            "sources": sources
+        })
+
+    except Exception as e:
+        print("GREŠKA U /chat:", e)
+        return jsonify({
+            "answer": "Dogodila se greška u RAG sustavu.",
+            "sources": []
+        }), 500
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    import os
+
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port, debug=False)
