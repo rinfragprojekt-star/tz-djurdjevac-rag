@@ -1,27 +1,48 @@
-from flask import Flask, request, jsonify
-from rag import generate_answer
+from flask import Flask, render_template, request, jsonify
+import os
 
 app = Flask(__name__)
 
+
 @app.route("/")
-def home():
-    return "RAG backend running!"
+def index():
+    return render_template("index.html")
+
+
+@app.route("/health")
+def health():
+    return "OK", 200
+
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    data = request.get_json(silent=True)
-
-    if not data:
-        return jsonify({"answer": "Neispravan JSON format.", "sources": []}), 400
-
-    question = data.get("message", "").strip()
+    data = request.get_json()
+    question = data.get("message", "")
 
     if not question:
-        return jsonify({"answer": "Niste poslali pitanje.", "sources": []})
+        return jsonify({
+            "answer": "Niste poslali pitanje.",
+            "sources": []
+        })
 
     try:
+        from rag import generate_answer
+
         answer, sources = generate_answer(question)
-        return jsonify({"answer": answer, "sources": sources})
+
+        return jsonify({
+            "answer": answer,
+            "sources": sources
+        })
+
     except Exception as e:
-        print("GREŠKA:", e)
-        return jsonify({"answer": "Dogodila se greška u RAG sustavu.", "sources": []}), 500
+        print("GREŠKA U /chat:", repr(e))
+        return jsonify({
+            "answer": "Dogodila se greška u RAG sustavu. Provjerite Cloud Run logove.",
+            "sources": []
+        }), 500
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port, debug=False)
