@@ -8,23 +8,25 @@ load_dotenv()
 
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
+os.environ["GOOGLE_API_USE_CLIENT_CERTIFICATE"] = "false"
 
-
-# Inicijalizacija ChromaDB klijenta
-chroma_client = chromadb.Client()
-
-# Kreiraj ili dohvatite kolekciju
+# Inicijalizacija ChromaDB klijenta (in-memory)
+chroma_client = chromadb.Client(
+    chromadb.config.Settings(
+        chroma_db_impl="duckdb+memory",
+        persist_directory=None
+    )
+)
 collection = chroma_client.get_or_create_collection(name="tz_docs")
 
 
 def get_embedding(text: str):
     """Generira embedding za zadani tekst pomoću Gemini embedding modela."""
     response = genai.embed_content(
-        model="embedding-001",
+        model="text-embedding-004",
         content=text
     )
 
-    # zaštita ako embedding ne postoji
     if "embedding" not in response or response["embedding"] is None:
         return [0.0] * 768  # fallback embedding
 
@@ -76,7 +78,6 @@ PITANJE:
         contents=prompt
     )
 
-    # U novijim verzijama response.text može biti None → koristi .candidates
     if response.text:
         answer = response.text
     else:
