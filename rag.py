@@ -1,6 +1,9 @@
 import os
 from pathlib import Path
 from google import genai
+from dotenv import load_dotenv
+
+load_dotenv()
 
 DOCUMENTS_DIR = Path("documents")
 MODEL_NAME = "gemini-2.0-flash"
