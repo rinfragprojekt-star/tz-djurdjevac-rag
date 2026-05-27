@@ -1,56 +1,27 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, request, jsonify
 from rag import generate_answer
-import os
-import sys
 
 app = Flask(__name__)
 
 @app.route("/")
-def index():
-    return render_template("index.html")
+def home():
+    return "RAG backend running!"
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    print("DEBUG: /chat endpoint hit")
-    sys.stdout.flush()
-
     data = request.get_json(silent=True)
-    print("DEBUG: Raw JSON:", data)
-    sys.stdout.flush()
 
     if not data:
-        return jsonify({
-            "answer": "Neispravan JSON format.",
-            "sources": []
-        }), 400
+        return jsonify({"answer": "Neispravan JSON format.", "sources": []}), 400
 
     question = data.get("message", "").strip()
-    print("DEBUG: Extracted question:", question)
-    sys.stdout.flush()
 
     if not question:
-        return jsonify({
-            "answer": "Niste poslali pitanje.",
-            "sources": []
-        })
+        return jsonify({"answer": "Niste poslali pitanje.", "sources": []})
 
     try:
         answer, sources = generate_answer(question)
-
-        print("DEBUG: RAG answer generated")
-        sys.stdout.flush()
-
-        return jsonify({
-            "answer": answer,
-            "sources": sources
-        })
-
+        return jsonify({"answer": answer, "sources": sources})
     except Exception as e:
-        print("GREŠKA U /chat:", e)
-        sys.stdout.flush()
-        return jsonify({
-            "answer": "Dogodila se greška u RAG sustavu.",
-            "sources": []
-        }), 500
-
-
+        print("GREŠKA:", e)
+        return jsonify({"answer": "Dogodila se greška u RAG sustavu.", "sources": []}), 500
