@@ -1,5 +1,5 @@
 flask
 gunicorn
 chromadb
-google-genai
+google-generativeai
 google-cloud-aiplatform
