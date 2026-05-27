@@ -1,18 +1,23 @@
 import os
 import chromadb
+from chromadb.config import Settings
 from dotenv import load_dotenv
 import google.generativeai as genai
 
-# 🔹 Učitaj .env datoteku (lokalno)
+# Učitaj .env (lokalno)
 load_dotenv()
 
-# 🔹 Konfiguracija Gemini API ključa
+# Konfiguracija Gemini API-ja
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
 os.environ["GOOGLE_API_USE_CLIENT_CERTIFICATE"] = "false"
 
-# 🔹 Inicijalizacija ChromaDB klijenta (in-memory, radi u Cloud Runu)
-chroma_client = chromadb.Client()
+# ChromaDB 0.4.x – in-memory (radi u Cloud Runu)
+chroma_client = chromadb.Client(Settings(
+    chroma_db_impl="duckdb+memory",
+    persist_directory=":memory:"
+))
+
 collection = chroma_client.get_or_create_collection(name="tz_docs")
 
 
@@ -23,9 +28,8 @@ def get_embedding(text: str):
         content=text
     )
 
-    # zaštita ako embedding ne postoji
     if "embedding" not in response or response["embedding"] is None:
-        return [0.0] * 768  # fallback embedding
+        return [0.0] * 768
 
     return response["embedding"]
 
