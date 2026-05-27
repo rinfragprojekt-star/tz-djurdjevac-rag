@@ -1,57 +1,120 @@
 import os
-import chromadb
-import google.generativeai as genai
+from pathlib import Path
+from google import genai
 
-# --- Gemini API ---
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-if not GEMINI_API_KEY:
-    raise RuntimeError("GEMINI_API_KEY environment variable is not set")
+DOCUMENTS_DIR = Path("documents")
+MODEL_NAME = "gemini-2.0-flash"
 
-genai.configure(api_key=GEMINI_API_KEY)
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
-# text model
-model = genai.GenerativeModel("gemini-1.5-flash")
 
-# --- ChromaDB ---
-chroma_client = chromadb.PersistentClient(path="./chroma")
+def load_documents():
+    documents = []
 
-collection = chroma_client.get_or_create_collection(
-    name="tz_djurdjevac_rag",
-    metadata={"hnsw:space": "cosine"}
-)
+    if not DOCUMENTS_DIR.exists():
+        return documents
 
-# --- Embedding preko Google Generative AI ---
-def embed(text: str):
-    response = genai.embed_content(
-        model="models/text-embedding-004",
-        content=text
-    )
-    return response["embedding"]
+    for file_path in DOCUMENTS_DIR.glob("*.txt"):
+        text = file_path.read_text(encoding="utf-8", errors="ignore")
 
-def generate_answer(question: str):
-    q_emb = embed(question)
+        documents.append({
+            "source": file_path.name,
+            "text": text
+        })
 
-    results = collection.query(
-        query_embeddings=[q_emb],
-        n_results=3,
-    )
+    return documents
 
-    docs = results.get("documents", [[]])
-    sources = docs[0] if docs and docs[0] else []
-    context = "\n".join(sources)
+
+def chunk_text(text, chunk_size=900, overlap=150):
+    chunks = []
+    start = 0
+
+    while start < len(text):
+        end = start + chunk_size
+        chunks.append(text[start:end])
+        start += chunk_size - overlap
+
+    return chunks
+
+
+def build_chunks():
+    chunks = []
+    documents = load_documents()
+
+    for doc in documents:
+        for index, chunk in enumerate(chunk_text(doc["text"])):
+            chunks.append({
+                "source": doc["source"],
+                "chunk_id": index + 1,
+                "text": chunk
+            })
+
+    return chunks
+
+
+def score_chunk(question, chunk):
+    question_words = set(question.lower().split())
+    chunk_words = set(chunk.lower().split())
+
+    return len(question_words.intersection(chunk_words))
+
+
+def retrieve_context(question, top_k=4):
+    chunks = build_chunks()
+
+    scored_chunks = []
+    for chunk in chunks:
+        score = score_chunk(question, chunk["text"])
+        scored_chunks.append((score, chunk))
+
+    scored_chunks.sort(key=lambda x: x[0], reverse=True)
+
+    best_chunks = [
+        chunk for score, chunk in scored_chunks
+        if score > 0
+    ][:top_k]
+
+    return best_chunks
+
+
+def generate_answer(question):
+    relevant_chunks = retrieve_context(question)
+
+    if not relevant_chunks:
+        return (
+            "Nisam pronašao dovoljno informacija u učitanim dokumentima za ovo pitanje.",
+            []
+        )
+
+    context = ""
+    sources = []
+
+    for chunk in relevant_chunks:
+        context += f"\nIZVOR: {chunk['source']} - dio {chunk['chunk_id']}\n"
+        context += chunk["text"] + "\n"
+
+        if chunk["source"] not in sources:
+            sources.append(chunk["source"])
 
     prompt = f"""
-You are a helpful assistant for TZ Đurđevac.
-Use the context below to answer the question.
+Ti si RAG asistent za dokumente Turističke zajednice.
 
-CONTEXT:
+Odgovori isključivo na temelju konteksta ispod.
+Ako odgovor nije u dokumentima, reci da informacija nije pronađena u dostupnim dokumentima.
+Odgovaraj jasno, kratko i na hrvatskom jeziku.
+
+KONTEKST:
 {context}
 
-QUESTION:
+PITANJE:
 {question}
+
+ODGOVOR:
 """
 
-    response = model.generate_content(prompt)
-    answer = response.text or ""
+    response = client.models.generate_content(
+        model=MODEL_NAME,
+        contents=prompt
+    )
 
-    return answer, sources
+    return response.text, sources
