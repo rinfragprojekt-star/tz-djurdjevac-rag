@@ -1,23 +1,23 @@
 import os
-import chromadb
+from chromadb import Client
+from chromadb.config import Settings
 from dotenv import load_dotenv
 import google.generativeai as genai
 
-# Učitaj .env datoteku (lokalno)
 load_dotenv()
 
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
 os.environ["GOOGLE_API_USE_CLIENT_CERTIFICATE"] = "false"
 
-# Inicijalizacija ChromaDB klijenta (in-memory)
-chroma_client = chromadb.Client(
-    chromadb.config.Settings(
-        chroma_db_impl="duckdb+memory",
-        persist_directory=None
-    )
-)
+# In-memory ChromaDB (radi u Cloud Runu)
+chroma_client = Client(Settings(
+    chroma_db_impl="duckdb+memory",
+    persist_directory=":memory:"
+))
+
 collection = chroma_client.get_or_create_collection(name="tz_docs")
+
 
 
 def get_embedding(text: str):
