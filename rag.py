@@ -1,6 +1,6 @@
 import os
 import chromadb
-import google.genai as genai
+import google.generativeai as genai
 
 # --- Gemini API ---
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
@@ -8,9 +8,11 @@ if not GEMINI_API_KEY:
     raise RuntimeError("GEMINI_API_KEY environment variable is not set")
 
 genai.configure(api_key=GEMINI_API_KEY)
+
+# text model
 model = genai.GenerativeModel("gemini-1.5-flash")
 
-# --- ChromaDB (NEW API) ---
+# --- ChromaDB ---
 chroma_client = chromadb.PersistentClient(path="./chroma")
 
 collection = chroma_client.get_or_create_collection(
@@ -18,7 +20,7 @@ collection = chroma_client.get_or_create_collection(
     metadata={"hnsw:space": "cosine"}
 )
 
-# --- Embedding preko Gemini API-ja ---
+# --- Embedding preko Google Generative AI ---
 def embed(text: str):
     response = genai.embed_content(
         model="models/text-embedding-004",
