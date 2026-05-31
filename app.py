@@ -3,16 +3,13 @@ import os
 
 app = Flask(__name__)
 
-
 @app.route("/")
 def index():
     return render_template("index.html")
 
-
 @app.route("/health")
 def health():
     return "OK", 200
-
 
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -35,17 +32,16 @@ def chat():
             "sources": sources
         })
 
-except Exception as e:
-    import traceback
+    except Exception as e:
+        import traceback
 
-    print("GREŠKA U /chat:", repr(e), flush=True)
-    traceback.print_exc()
+        print("GREŠKA U /chat:", repr(e), flush=True)
+        traceback.print_exc()
 
-    return jsonify({
-        "answer": f"Greška u RAG sustavu: {repr(e)}",
-        "sources": []
-    }), 500
-
+        return jsonify({
+            "answer": f"Greška u RAG sustavu: {repr(e)}",
+            "sources": []
+        }), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
