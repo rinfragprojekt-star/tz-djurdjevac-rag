@@ -35,12 +35,16 @@ def chat():
             "sources": sources
         })
 
-    except Exception as e:
-        print("GREŠKA U /chat:", repr(e))
-        return jsonify({
-            "answer": "Dogodila se greška u RAG sustavu. Provjerite Cloud Run logove.",
-            "sources": []
-        }), 500
+except Exception as e:
+    import traceback
+
+    print("GREŠKA U /chat:", repr(e), flush=True)
+    traceback.print_exc()
+
+    return jsonify({
+        "answer": f"Greška u RAG sustavu: {repr(e)}",
+        "sources": []
+    }), 500
 
 
 if __name__ == "__main__":
