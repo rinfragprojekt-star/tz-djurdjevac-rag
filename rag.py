@@ -6,10 +6,13 @@ from functools import lru_cache
 from dotenv import load_dotenv
 from google import genai
 
-# Učitava .env lokalno, a na Cloud Runu koristi Environment Variables
+# Lokalno učitava .env datoteku
+# Na Cloud Runu koristi Environment Variable
 load_dotenv()
 
-DOCUMENTS_DIR = Path("documents")
+# DIREKTNO POSTAVLJEN DOKUMENT
+DOCUMENT_PATH = Path("documents") / "djurdjevac.txt"
+
 MODEL_NAME = "gemini-2.0-flash"
 
 CHUNK_SIZE = 1000
@@ -21,95 +24,69 @@ STOP_WORDS = {
     "i", "u", "na", "za", "je", "su", "se", "sa", "od", "do", "po", "kao",
     "koji", "koja", "koje", "što", "kako", "gdje", "kada", "tko", "te",
     "ili", "a", "o", "iz", "pri", "to", "taj", "ta", "ovo", "ono", "mora",
-    "može", "treba", "smo", "ste", "sam", "si", "bi", "biti", "ima", "imaju"
+    "može", "treba", "smo", "ste", "sam", "si", "bi", "biti", "ima", "imaju",
+    "će", "ne", "da", "li", "s", "pod", "nad", "prema", "kod"
 }
 
 
 def get_api_key():
-    """
-    Dohvaća Gemini API ključ iz environment varijable.
-    Lokalno može biti u .env datoteci.
-    Na Cloud Runu mora biti dodan pod Variables & Secrets.
-    """
     api_key = os.getenv("GEMINI_API_KEY")
 
     if not api_key:
         raise RuntimeError(
             "GEMINI_API_KEY nije postavljen. "
-            "Dodaj ga lokalno u .env ili u Cloud Run Variables & Secrets."
+            "Dodaj ga u .env lokalno ili u Cloud Run Variables & Secrets."
         )
 
     return api_key
 
 
 def get_client():
-    """
-    Gemini klijent se stvara tek kada korisnik pošalje pitanje.
-    Tako se Flask aplikacija može normalno pokrenuti i ako API key nije odmah dostupan.
-    """
     return genai.Client(api_key=get_api_key())
 
 
 def normalize_text(text):
-    """
-    Pretvara tekst u mala slova i izvlači riječi.
-    Radi i s hrvatskim znakovima.
-    """
     text = text.lower()
     words = re.findall(r"[a-zA-ZčćžšđČĆŽŠĐ0-9]+", text)
 
-    return [
-        word for word in words
-        if len(word) > 2 and word not in STOP_WORDS
-    ]
+    clean_words = []
+
+    for word in words:
+        if len(word) > 2 and word not in STOP_WORDS:
+            clean_words.append(word)
+
+    return clean_words
 
 
 @lru_cache(maxsize=1)
-def load_documents():
+def load_document():
     """
-    Učitava sve .txt datoteke iz mape documents.
-    Primjer:
-    documents/djurdjevac.txt
-    documents/evisitor.txt
+    Učitava direktno documents/djurdjevac.txt
     """
-    documents = []
+    if not DOCUMENT_PATH.exists():
+        print(f"GREŠKA: Dokument ne postoji: {DOCUMENT_PATH}", flush=True)
+        return None
 
-    if not DOCUMENTS_DIR.exists():
-        print("UPOZORENJE: Mapa 'documents' ne postoji.", flush=True)
-        return documents
+    try:
+        text = DOCUMENT_PATH.read_text(encoding="utf-8", errors="ignore").strip()
 
-    txt_files = list(DOCUMENTS_DIR.glob("*.txt"))
+        if not text:
+            print(f"GREŠKA: Dokument je prazan: {DOCUMENT_PATH}", flush=True)
+            return None
 
-    if not txt_files:
-        print("UPOZORENJE: U mapi 'documents' nema .txt datoteka.", flush=True)
-        return documents
+        print(f"Učitan dokument: {DOCUMENT_PATH}", flush=True)
 
-    for file_path in txt_files:
-        try:
-            text = file_path.read_text(encoding="utf-8", errors="ignore").strip()
+        return {
+            "source": DOCUMENT_PATH.name,
+            "text": text
+        }
 
-            if not text:
-                print(f"UPOZORENJE: Dokument {file_path.name} je prazan.", flush=True)
-                continue
-
-            documents.append({
-                "source": file_path.name,
-                "text": text
-            })
-
-        except Exception as e:
-            print(f"Greška kod čitanja dokumenta {file_path.name}: {repr(e)}", flush=True)
-
-    print("Učitani dokumenti:", [doc["source"] for doc in documents], flush=True)
-
-    return documents
+    except Exception as e:
+        print(f"Greška kod čitanja dokumenta {DOCUMENT_PATH}: {repr(e)}", flush=True)
+        return None
 
 
 def chunk_text(text, chunk_size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
-    """
-    Dijeli dokument na manje dijelove.
-    Overlap znači da se dio teksta preklapa kako se ne bi izgubio kontekst.
-    """
     if not text:
         return []
 
@@ -134,20 +111,22 @@ def chunk_text(text, chunk_size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
 @lru_cache(maxsize=1)
 def build_chunks():
     """
-    Iz svih dokumenata izrađuje dijelove za pretraživanje.
+    Iz dokumenta djurdjevac.txt izrađuje dijelove za pretraživanje.
     """
     chunks = []
-    documents = load_documents()
+    document = load_document()
 
-    for doc in documents:
-        doc_chunks = chunk_text(doc["text"])
+    if not document:
+        return chunks
 
-        for index, chunk in enumerate(doc_chunks):
-            chunks.append({
-                "source": doc["source"],
-                "chunk_id": index + 1,
-                "text": chunk
-            })
+    doc_chunks = chunk_text(document["text"])
+
+    for index, chunk in enumerate(doc_chunks):
+        chunks.append({
+            "source": document["source"],
+            "chunk_id": index + 1,
+            "text": chunk
+        })
 
     print(f"Ukupno izrađeno chunkova: {len(chunks)}", flush=True)
 
@@ -155,10 +134,6 @@ def build_chunks():
 
 
 def score_chunk(question, chunk_text_value):
-    """
-    Jednostavno lokalno pretraživanje.
-    Gleda poklapanje riječi iz pitanja i riječi u dijelu dokumenta.
-    """
     question_words = normalize_text(question)
     chunk_words = normalize_text(chunk_text_value)
 
@@ -168,20 +143,18 @@ def score_chunk(question, chunk_text_value):
     question_set = set(question_words)
     chunk_set = set(chunk_words)
 
-    score = 0
-
-    # Bodovi za poklapanje riječi
     common_words = question_set.intersection(chunk_set)
-    score += len(common_words) * 3
 
-    # Dodatni bodovi ako se riječ iz pitanja pojavljuje direktno u tekstu
+    score = len(common_words) * 3
+
     chunk_lower = chunk_text_value.lower()
+
     for word in question_set:
         if word in chunk_lower:
             score += 2
 
-    # Dodatni bodovi ako se cijelo pitanje djelomično pojavljuje u tekstu
     question_lower = question.lower().strip()
+
     if question_lower and question_lower in chunk_lower:
         score += 10
 
@@ -189,9 +162,6 @@ def score_chunk(question, chunk_text_value):
 
 
 def retrieve_context(question, top_k=TOP_K):
-    """
-    Dohvaća najrelevantnije dijelove dokumenata za korisničko pitanje.
-    """
     chunks = build_chunks()
 
     if not chunks:
@@ -214,9 +184,6 @@ def retrieve_context(question, top_k=TOP_K):
 
 
 def create_prompt(question, relevant_chunks):
-    """
-    Sastavlja prompt koji se šalje Gemini modelu.
-    """
     context_parts = []
 
     for chunk in relevant_chunks:
@@ -228,15 +195,15 @@ def create_prompt(question, relevant_chunks):
     context = "\n\n---\n\n".join(context_parts)
 
     prompt = f"""
-Ti si RAG asistent za dokumente Turističke zajednice Đurđevac.
+Ti si RAG asistent za dokument Turističke zajednice Đurđevac.
 
-Tvoj zadatak:
-- odgovaraj isključivo na temelju priloženog konteksta
-- ako odgovor nije jasno naveden u kontekstu, reci da informacija nije pronađena u dostupnim dokumentima
-- ne izmišljaj podatke
-- odgovaraj na hrvatskom jeziku
-- odgovor neka bude jasan, koristan i dovoljno kratak za učenike/studente
-- ako je moguće, spomeni iz kojeg izvora dolazi informacija
+Pravila:
+- Odgovaraj isključivo na temelju priloženog konteksta.
+- Ako odgovor nije jasno naveden u kontekstu, napiši da informacija nije pronađena u dokumentu.
+- Nemoj izmišljati podatke.
+- Odgovaraj na hrvatskom jeziku.
+- Odgovor neka bude jasan, koristan i razumljiv.
+- Ako je moguće, spomeni da je izvor dokument djurdjevac.txt.
 
 KONTEKST:
 {context}
@@ -262,18 +229,18 @@ def generate_answer(question):
     relevant_chunks = retrieve_context(question)
 
     if not relevant_chunks:
-        documents = load_documents()
+        document = load_document()
 
-        if not documents:
+        if not document:
             return (
-                "Nema učitanih dokumenata. Provjerite postoji li mapa 'documents' "
-                "i nalazi li se u njoj datoteka poput 'djurdjevac.txt'.",
+                "Dokument nije pronađen. Provjerite postoji li datoteka "
+                "'documents/djurdjevac.txt'.",
                 []
             )
 
         return (
-            "Nisam pronašao dovoljno informacija u učitanim dokumentima za ovo pitanje.",
-            [doc["source"] for doc in documents]
+            "Nisam pronašao dovoljno informacija u dokumentu djurdjevac.txt za ovo pitanje.",
+            [document["source"]]
         )
 
     sources = []
@@ -313,7 +280,8 @@ def generate_answer(question):
 
 def clear_cache():
     """
-    Korisno ako promijeniš dokumente dok aplikacija radi lokalno.
+    Ako promijeniš djurdjevac.txt dok aplikacija radi lokalno,
+    pozovi ovu funkciju ili restartaj Flask.
     """
-    load_documents.cache_clear()
+    load_document.cache_clear()
     build_chunks.cache_clear()
