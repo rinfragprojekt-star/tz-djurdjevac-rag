@@ -4,7 +4,7 @@ from pathlib import Path
 from functools import lru_cache
 
 from dotenv import load_dotenv
-from google import genai
+from google import google-genai
 
 # Lokalno učitava .env datoteku
 # Na Cloud Runu koristi Environment Variable
