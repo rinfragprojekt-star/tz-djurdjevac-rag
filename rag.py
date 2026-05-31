@@ -216,7 +216,6 @@ ODGOVOR:
 
     return prompt
 
-
 def generate_answer(question):
     """
     Glavna funkcija koju poziva app.py.
@@ -269,12 +268,16 @@ def generate_answer(question):
 
         return answer.strip(), sources
 
-        except Exception as e:
+    except Exception as e:
         print("GREŠKA U generate_answer:", repr(e), flush=True)
 
         error_text = str(e)
 
-        if "429" in error_text or "RESOURCE_EXHAUSTED" in error_text or "quota" in error_text.lower():
+        if (
+            "429" in error_text
+            or "RESOURCE_EXHAUSTED" in error_text
+            or "quota" in error_text.lower()
+        ):
             fallback_answer = (
                 "Gemini API kvota je trenutno potrošena, pa nije moguće generirati AI odgovor. "
                 "Ipak, RAG sustav je pronašao relevantne dijelove u dokumentu.\n\n"
@@ -291,6 +294,7 @@ def generate_answer(question):
             f"Greška u RAG sustavu: {repr(e)}",
             sources
         )
+
 
 def clear_cache():
     """
