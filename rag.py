@@ -13,11 +13,11 @@ load_dotenv()
 # DIREKTNO POSTAVLJEN DOKUMENT
 DOCUMENT_PATH = Path("documents") / "djurdjevac.txt"
 
-MODEL_NAME = "gemini-2.0-flash"
+MODEL_NAME = "gemini-2.5-flash-lite"
 
-CHUNK_SIZE = 1000
-CHUNK_OVERLAP = 200
-TOP_K = 4
+CHUNK_SIZE = 700
+CHUNK_OVERLAP = 100
+TOP_K = 2
 
 
 STOP_WORDS = {
@@ -269,14 +269,28 @@ def generate_answer(question):
 
         return answer.strip(), sources
 
-    except Exception as e:
+        except Exception as e:
         print("GREŠKA U generate_answer:", repr(e), flush=True)
+
+        error_text = str(e)
+
+        if "429" in error_text or "RESOURCE_EXHAUSTED" in error_text or "quota" in error_text.lower():
+            fallback_answer = (
+                "Gemini API kvota je trenutno potrošena, pa nije moguće generirati AI odgovor. "
+                "Ipak, RAG sustav je pronašao relevantne dijelove u dokumentu.\n\n"
+                "Najrelevantniji pronađeni sadržaj:\n\n"
+            )
+
+            for chunk in relevant_chunks:
+                fallback_answer += f"[{chunk['source']} - dio {chunk['chunk_id']}]\n"
+                fallback_answer += chunk["text"][:700] + "\n\n"
+
+            return fallback_answer.strip(), sources
 
         return (
             f"Greška u RAG sustavu: {repr(e)}",
             sources
         )
-
 
 def clear_cache():
     """
