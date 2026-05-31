@@ -2,5 +2,5 @@ Flask
 gunicorn
 python-dotenv
 chromadb
-google-geneai
+google-genai
 google-cloud-aiplatform
