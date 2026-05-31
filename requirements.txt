@@ -1,5 +1,6 @@
-flask
+Flask
 gunicorn
+python-dotenv
 chromadb
-google-generativeai
+google-geneai
 google-cloud-aiplatform
