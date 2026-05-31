@@ -13,7 +13,7 @@ load_dotenv()
 # DIREKTNO POSTAVLJEN DOKUMENT
 DOCUMENT_PATH = Path("documents") / "djurdjevac.txt"
 
-MODEL_NAME = "gemini-2.5-flash-lite"
+MODEL_NAME = "gemini-2.0-flash"
 
 CHUNK_SIZE = 700
 CHUNK_OVERLAP = 100
