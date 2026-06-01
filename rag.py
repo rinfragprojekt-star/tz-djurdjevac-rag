@@ -219,19 +219,29 @@ ODGOVOR:
 def generate_answer(question):
     """
     Glavna funkcija koju poziva app.py.
-    Vraća:
-    answer, sources
+    Prvo pokušava pronaći odgovor u documents/djurdjevac.txt.
+    Ako ne pronađe relevantan dio, daje općeniti AI odgovor i jasno označava da nije iz dokumenta.
     """
     if not question or not question.strip():
         return "Niste poslali pitanje.", []
 
     relevant_chunks = retrieve_context(question)
 
-if not relevant_chunks:
-    try:
-        client = get_client()
+    # Ako nije pronađen relevantan dio u dokumentu
+    if not relevant_chunks:
+        document = load_document()
 
-        prompt = f"""
+        if not document:
+            return (
+                "Dokument nije pronađen. Provjerite postoji li datoteka "
+                "'documents/djurdjevac.txt'.",
+                []
+            )
+
+        try:
+            client = get_client()
+
+            prompt = f"""
 Ti si AI asistent za Turističku zajednicu Đurđevac.
 
 Za ovo pitanje nije pronađen relevantan sadržaj u dokumentu djurdjevac.txt.
@@ -244,19 +254,22 @@ PITANJE:
 ODGOVOR:
 """
 
-        response = client.models.generate_content(
-            model=MODEL_NAME,
-            contents=prompt
-        )
+            response = client.models.generate_content(
+                model=MODEL_NAME,
+                contents=prompt
+            )
 
-        return response.text.strip(), ["Odgovor nije pronađen u dokumentu"]
+            return response.text.strip(), ["Odgovor nije pronađen u dokumentu"]
 
-    except Exception as e:
-        return (
-            f"Greška u AI odgovoru: {repr(e)}",
-            []
-        )
+        except Exception as e:
+            print("GREŠKA U općenitom AI odgovoru:", repr(e), flush=True)
 
+            return (
+                f"Greška u RAG sustavu: {repr(e)}",
+                [document["source"]]
+            )
+
+    # Ako je pronađen relevantan dio u dokumentu
     sources = []
 
     for chunk in relevant_chunks:
@@ -292,10 +305,12 @@ ODGOVOR:
             "429" in error_text
             or "RESOURCE_EXHAUSTED" in error_text
             or "quota" in error_text.lower()
+            or "403" in error_text
+            or "PERMISSION_DENIED" in error_text
         ):
             fallback_answer = (
-                "Gemini API kvota je trenutno potrošena, pa nije moguće generirati AI odgovor. "
-                "Ipak, RAG sustav je pronašao relevantne dijelove u dokumentu.\n\n"
+                "Gemini API trenutno ne može generirati odgovor, "
+                "ali RAG sustav je pronašao relevantne dijelove u dokumentu.\n\n"
                 "Najrelevantniji pronađeni sadržaj:\n\n"
             )
 
