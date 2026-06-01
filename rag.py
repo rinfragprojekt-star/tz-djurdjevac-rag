@@ -227,19 +227,34 @@ def generate_answer(question):
 
     relevant_chunks = retrieve_context(question)
 
-    if not relevant_chunks:
-        document = load_document()
+if not relevant_chunks:
+    try:
+        client = get_client()
 
-        if not document:
-            return (
-                "Dokument nije pronađen. Provjerite postoji li datoteka "
-                "'documents/djurdjevac.txt'.",
-                []
-            )
+        prompt = f"""
+Ti si AI asistent za Turističku zajednicu Đurđevac.
 
+Za ovo pitanje nije pronađen relevantan sadržaj u dokumentu djurdjevac.txt.
+Odgovori općenito, jasno i na hrvatskom jeziku.
+Na početku odgovora napiši da odgovor nije pronađen u dokumentu, nego je generiran općenitim znanjem modela.
+
+PITANJE:
+{question}
+
+ODGOVOR:
+"""
+
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt
+        )
+
+        return response.text.strip(), ["Odgovor nije pronađen u dokumentu"]
+
+    except Exception as e:
         return (
-            "Nisam pronašao dovoljno informacija u dokumentu djurdjevac.txt za ovo pitanje.",
-            [document["source"]]
+            f"Greška u AI odgovoru: {repr(e)}",
+            []
         )
 
     sources = []
