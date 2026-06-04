@@ -61,7 +61,7 @@ def normalize_text(text):
 @lru_cache(maxsize=1)
 def load_document():
     """
-    Učitava direktno documents/djurdjevac.txt
+    Učitava direktno documents/djurdjevac.md
     """
     if not DOCUMENT_PATH.exists():
         print(f"GREŠKA: Dokument ne postoji: {DOCUMENT_PATH}", flush=True)
@@ -111,7 +111,7 @@ def chunk_text(text, chunk_size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
 @lru_cache(maxsize=1)
 def build_chunks():
     """
-    Iz dokumenta djurdjevac.txt izrađuje dijelove za pretraživanje.
+    Iz dokumenta djurdjevac.md izrađuje dijelove za pretraživanje.
     """
     chunks = []
     document = load_document()
@@ -199,11 +199,11 @@ Ti si RAG asistent za dokument Turističke zajednice Đurđevac.
 
 Pravila:
 - Odgovaraj isključivo na temelju priloženog konteksta.
-- Ako odgovor nije jasno naveden u kontekstu, napiši da informacija nije pronađena u dokumentu.
+- Ako odgovor nije jasno naveden u kontekstu, generiraj točan i nedvosmislen odgovor pomoću AI-a.
 - Nemoj izmišljati podatke.
 - Odgovaraj na hrvatskom jeziku.
 - Odgovor neka bude jasan, koristan i razumljiv.
-- Ako je moguće, spomeni da je izvor dokument djurdjevac.txt.
+- Ako je moguće, spomeni da je izvor dokument djurdjevac.md.
 
 KONTEKST:
 {context}
@@ -219,7 +219,7 @@ ODGOVOR:
 def generate_answer(question):
     """
     Glavna funkcija koju poziva app.py.
-    Prvo pokušava pronaći odgovor u documents/djurdjevac.txt.
+    Prvo pokušava pronaći odgovor u documents/djurdjevac.md.
     Ako ne pronađe relevantan dio, daje općeniti AI odgovor i jasno označava da nije iz dokumenta.
     """
     if not question or not question.strip():
@@ -234,7 +234,7 @@ def generate_answer(question):
         if not document:
             return (
                 "Dokument nije pronađen. Provjerite postoji li datoteka "
-                "'documents/djurdjevac.txt'.",
+                "'documents/djurdjevac.md'.",
                 []
             )
 
@@ -244,7 +244,7 @@ def generate_answer(question):
             prompt = f"""
 Ti si AI asistent za Turističku zajednicu Đurđevac.
 
-Za ovo pitanje nije pronađen relevantan sadržaj u dokumentu djurdjevac.txt.
+Za ovo pitanje nije pronađen relevantan sadržaj u dokumentu djurdjevac.md.
 Odgovori općenito, jasno i na hrvatskom jeziku.
 Na početku odgovora napiši da odgovor nije pronađen u dokumentu, nego je generiran općenitim znanjem modela.
 
@@ -328,7 +328,7 @@ ODGOVOR:
 
 def clear_cache():
     """
-    Ako promijeniš djurdjevac.txt dok aplikacija radi lokalno,
+    Ako promijeniš djurdjevac.md dok aplikacija radi lokalno,
     pozovi ovu funkciju ili restartaj Flask.
     """
     load_document.cache_clear()
