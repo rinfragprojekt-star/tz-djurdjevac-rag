@@ -11,7 +11,7 @@ from google import genai
 load_dotenv()
 
 # DIREKTNO POSTAVLJEN DOKUMENT
-DOCUMENT_PATH = Path("documents") / "djurdjevac.txt"
+DOCUMENT_PATH = Path("documents") / "djurdjevac.md"
 
 MODEL_NAME = "gemini-2.5-flash-lite"
 
